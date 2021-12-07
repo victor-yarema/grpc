@@ -95,6 +95,53 @@ namespace Grpc.Testing {
       get { return global::Grpc.Testing.MetricsReflection.Descriptor.Services[0]; }
     }
 
+    /// <summary>Client for MetricsService</summary>
+    [System.Obsolete("Client side interfaced will be removed in the next release. Use client class directly.")]
+    public interface IMetricsServiceClient
+    {
+      /// <summary>
+      ///  Returns the values of all the gauges that are currently being maintained by
+      ///  the service
+      /// </summary>
+      AsyncServerStreamingCall<global::Grpc.Testing.GaugeResponse> GetAllGauges(global::Grpc.Testing.EmptyMessage request, Metadata headers = null, DateTime? deadline = null, CancellationToken cancellationToken = default(CancellationToken));
+      /// <summary>
+      ///  Returns the values of all the gauges that are currently being maintained by
+      ///  the service
+      /// </summary>
+      AsyncServerStreamingCall<global::Grpc.Testing.GaugeResponse> GetAllGauges(global::Grpc.Testing.EmptyMessage request, CallOptions options);
+      /// <summary>
+      ///  Returns the value of one gauge
+      /// </summary>
+      global::Grpc.Testing.GaugeResponse GetGauge(global::Grpc.Testing.GaugeRequest request, Metadata headers = null, DateTime? deadline = null, CancellationToken cancellationToken = default(CancellationToken));
+      /// <summary>
+      ///  Returns the value of one gauge
+      /// </summary>
+      global::Grpc.Testing.GaugeResponse GetGauge(global::Grpc.Testing.GaugeRequest request, CallOptions options);
+      /// <summary>
+      ///  Returns the value of one gauge
+      /// </summary>
+      AsyncUnaryCall<global::Grpc.Testing.GaugeResponse> GetGaugeAsync(global::Grpc.Testing.GaugeRequest request, Metadata headers = null, DateTime? deadline = null, CancellationToken cancellationToken = default(CancellationToken));
+      /// <summary>
+      ///  Returns the value of one gauge
+      /// </summary>
+      AsyncUnaryCall<global::Grpc.Testing.GaugeResponse> GetGaugeAsync(global::Grpc.Testing.GaugeRequest request, CallOptions options);
+    }
+
+    /// <summary>Interface of server-side implementations of MetricsService</summary>
+    [System.Obsolete("Service implementations should inherit from the generated abstract base class instead.")]
+    public interface IMetricsService
+    {
+      /// <summary>
+      ///  Returns the values of all the gauges that are currently being maintained by
+      ///  the service
+      /// </summary>
+      global::System.Threading.Tasks.Task GetAllGauges(global::Grpc.Testing.EmptyMessage request, IServerStreamWriter<global::Grpc.Testing.GaugeResponse> responseStream, ServerCallContext context);
+      /// <summary>
+      ///  Returns the value of one gauge
+      /// </summary>
+      global::System.Threading.Tasks.Task<global::Grpc.Testing.GaugeResponse> GetGauge(global::Grpc.Testing.GaugeRequest request, ServerCallContext context);
+    }
+
     /// <summary>Base class for server-side implementations of MetricsService</summary>
     [grpc::BindServiceMethod(typeof(MetricsService), "BindService")]
     public abstract partial class MetricsServiceBase
@@ -128,7 +175,9 @@ namespace Grpc.Testing {
     }
 
     /// <summary>Client for MetricsService</summary>
-    public partial class MetricsServiceClient : grpc::ClientBase<MetricsServiceClient>
+    #pragma warning disable 0618
+    public partial class MetricsServiceClient : grpc::ClientBase<MetricsServiceClient>, IMetricsServiceClient
+    #pragma warning restore 0618
     {
       /// <summary>Creates a new client for MetricsService</summary>
       /// <param name="channel">The channel to use to make remote calls.</param>
@@ -239,7 +288,21 @@ namespace Grpc.Testing {
     /// <summary>Creates service definition that can be registered with a server</summary>
     /// <param name="serviceImpl">An object implementing the server-side handling logic.</param>
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    #pragma warning disable 0618
+    public static grpc::ServerServiceDefinition BindService(IMetricsService serviceImpl)
+    #pragma warning restore 0618
+    {
+      return ServerServiceDefinition.CreateBuilder()
+          .AddMethod(__Method_GetAllGauges, serviceImpl.GetAllGauges)
+          .AddMethod(__Method_GetGauge, serviceImpl.GetGauge).Build();
+    }
+
+    /// <summary>Creates service definition that can be registered with a server</summary>
+    /// <param name="serviceImpl">An object implementing the server-side handling logic.</param>
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    #pragma warning disable 0618
     public static grpc::ServerServiceDefinition BindService(MetricsServiceBase serviceImpl)
+    #pragma warning restore 0618
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_GetAllGauges, serviceImpl.GetAllGauges)

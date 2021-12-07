@@ -178,8 +178,16 @@ std::string GetServiceClassName(const ServiceDescriptor* service) {
   return service->name();
 }
 
+std::string GetClientInterfaceName(const ServiceDescriptor* service) {
+  return "I" + service->name() + "Client";
+}
+
 std::string GetClientClassName(const ServiceDescriptor* service) {
   return service->name() + "Client";
+}
+
+std::string GetServerInterfaceName(const ServiceDescriptor* service) {
+  return "I" + service->name();
 }
 
 std::string GetServerClassName(const ServiceDescriptor* service) {
@@ -434,6 +442,86 @@ void GenerateServiceDescriptorProperty(Printer* out,
   out->Print("\n");
 }
 
+void GenerateClientInterface(Printer* out, const ServiceDescriptor* service) {
+  out->Print("/// <summary>Client for $servicename$</summary>\n",
+             "servicename", GetServiceClassName(service));
+  out->Print("[System.Obsolete(\"Client side interfaced will be removed "
+             "in the next release. Use client class directly.\")]\n");
+  out->Print("public interface $name$\n", "name",
+             GetClientInterfaceName(service));
+  out->Print("{\n");
+  out->Indent();
+  for (int i = 0; i < service->method_count(); i++) {
+    const MethodDescriptor *method = service->method(i);
+    MethodType method_type = GetMethodType(method);
+
+    if (method_type == METHODTYPE_NO_STREAMING) {
+      // unary calls have an extra synchronous stub method
+      GenerateDocCommentBody(out, method);
+      out->Print(
+          "$response$ $methodname$($request$ request, Metadata headers = null, DateTime? deadline = null, CancellationToken cancellationToken = default(CancellationToken));\n",
+          "methodname", method->name(), "request",
+          GetClassName(method->input_type()), "response",
+          GetClassName(method->output_type()));
+
+      // overload taking CallOptions as a param
+      GenerateDocCommentBody(out, method);
+      out->Print(
+          "$response$ $methodname$($request$ request, CallOptions options);\n",
+          "methodname", method->name(), "request",
+          GetClassName(method->input_type()), "response",
+          GetClassName(method->output_type()));
+    }
+
+    std::string method_name = method->name();
+    if (method_type == METHODTYPE_NO_STREAMING) {
+      method_name += "Async";  // prevent name clash with synchronous method.
+    }
+    GenerateDocCommentBody(out, method);
+    out->Print(
+        "$returntype$ $methodname$($request_maybe$Metadata headers = null, DateTime? deadline = null, CancellationToken cancellationToken = default(CancellationToken));\n",
+        "methodname", method_name, "request_maybe",
+        GetMethodRequestParamMaybe(method), "returntype",
+        GetMethodReturnTypeClient(method));
+
+    // overload taking CallOptions as a param
+    GenerateDocCommentBody(out, method);
+    out->Print(
+        "$returntype$ $methodname$($request_maybe$CallOptions options);\n",
+        "methodname", method_name, "request_maybe",
+        GetMethodRequestParamMaybe(method), "returntype",
+        GetMethodReturnTypeClient(method));
+  }
+  out->Outdent();
+  out->Print("}\n");
+  out->Print("\n");
+}
+
+void GenerateServerInterface(Printer* out, const ServiceDescriptor* service) {
+  out->Print("/// <summary>Interface of server-side implementations of $servicename$</summary>\n",
+             "servicename", GetServiceClassName(service));
+  out->Print("[System.Obsolete(\"Service implementations should inherit"
+      " from the generated abstract base class instead.\")]\n");
+  out->Print("public interface $name$\n", "name",
+             GetServerInterfaceName(service));
+  out->Print("{\n");
+  out->Indent();
+  for (int i = 0; i < service->method_count(); i++) {
+    const MethodDescriptor *method = service->method(i);
+    GenerateDocCommentBody(out, method);
+    out->Print(
+        "$returntype$ $methodname$($request$$response_stream_maybe$, "
+        "ServerCallContext context);\n",
+        "methodname", method->name(), "returntype",
+        GetMethodReturnTypeServer(method), "request",
+        GetMethodRequestParamServer(method), "response_stream_maybe",
+        GetMethodResponseStreamMaybe(method));
+  }
+  out->Outdent();
+  out->Print("}\n");
+  out->Print("\n");
+}
+
 void GenerateServerClass(Printer* out, const ServiceDescriptor* service) {
   out->Print(
       "/// <summary>Base class for server-side implementations of "
@@ -475,8 +563,11 @@ void GenerateServerClass(Printer* out, const ServiceDescriptor* service) {
 void GenerateClientStub(Printer* out, const ServiceDescriptor* service) {
   out->Print("/// <summary>Client for $servicename$</summary>\n",
              "servicename", GetServiceClassName(service));
-  out->Print("public partial class $name$ : grpc::ClientBase<$name$>\n",
-             "name", GetClientClassName(service));
+  out->Print("#pragma warning disable 0618\n");
+  out->Print("public partial class $name$ : grpc::ClientBase<$name$>, $interface$\n",
+             "name", GetClientClassName(service),
+             "interface", GetClientInterfaceName(service));
+  out->Print("#pragma warning restore 0618\n");
   out->Print("{\n");
   out->Indent();
 
@@ -658,18 +749,22 @@ void GenerateClientStub(Printer* out, const ServiceDescriptor* service) {
   out->Print("\n");
 }
 
-void GenerateBindServiceMethod(Printer* out, const ServiceDescriptor* service) {
+void GenerateBindServiceMethod(Printer* out, const ServiceDescriptor* service,
+                               bool use_server_class) {
   out->Print(
       "/// <summary>Creates service definition that can be registered with a "
       "server</summary>\n");
+  out->Print("#pragma warning disable 0618\n");
   out->Print(
       "/// <param name=\"serviceImpl\">An object implementing the server-side"
       " handling logic.</param>\n");
   GenerateGeneratedCodeAttribute(out);
   out->Print(
-      "public static grpc::ServerServiceDefinition BindService($implclass$ "
+      "public static grpc::ServerServiceDefinition BindService($interface$ "
       "serviceImpl)\n",
-      "implclass", GetServerClassName(service));
+      "interface", use_server_class ? GetServerClassName(service) :
+          GetServerInterfaceName(service));
+  out->Print("#pragma warning restore 0618\n");
   out->Print("{\n");
   out->Indent();
 
@@ -755,14 +850,19 @@ void GenerateService(Printer* out, const ServiceDescriptor* service,
   }
   GenerateServiceDescriptorProperty(out, service);
 
+  if (generate_client) {
+    GenerateClientInterface(out, service);
+  }
   if (generate_server) {
+    GenerateServerInterface(out, service);
     GenerateServerClass(out, service);
   }
   if (generate_client) {
     GenerateClientStub(out, service);
   }
   if (generate_server) {
-    GenerateBindServiceMethod(out, service);
+    GenerateBindServiceMethod(out, service, false);
+    GenerateBindServiceMethod(out, service, true);
     GenerateBindServiceWithBinderMethod(out, service);
   }
 
