@@ -473,10 +473,10 @@ void GenerateServerClass(Printer* out, const ServiceDescriptor* service) {
 }
 
 void GenerateClientStub(Printer* out, const ServiceDescriptor* service) {
-  out->Print("/// <summary>Client for $servicename$</summary>\n", "servicename",
-             GetServiceClassName(service));
-  out->Print("public partial class $name$ : grpc::ClientBase<$name$>\n", "name",
-             GetClientClassName(service));
+  out->Print("/// <summary>Client for $servicename$</summary>\n",
+             "servicename", GetServiceClassName(service));
+  out->Print("public partial class $name$ : grpc::ClientBase<$name$>\n",
+             "name", GetClientClassName(service));
   out->Print("{\n");
   out->Indent();
 
