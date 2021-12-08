@@ -26,12 +26,16 @@
 #include "src/compiler/config.h"
 #include "src/compiler/csharp_generator_helpers.h"
 
+using google::protobuf::compiler::csharp::GetClassName;
 using grpc::protobuf::Descriptor;
 using grpc::protobuf::FileDescriptor;
 using grpc::protobuf::MethodDescriptor;
 using grpc::protobuf::ServiceDescriptor;
 using grpc::protobuf::io::Printer;
 using grpc::protobuf::io::StringOutputStream;
+using grpc_generator::METHODTYPE_NO_STREAMING;
+using grpc_generator::GetMethodType;
+using grpc_generator::MethodType;
 using grpc_generator::StringReplace;
 using std::vector;
 
